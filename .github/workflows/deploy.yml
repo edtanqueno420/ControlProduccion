@@ -1,0 +1,77 @@
+# .github/workflows/deploy.yml
+name: ControlProduccion CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: controlproduccion_test_db
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Run tests
+        env:
+          SECRET_KEY: test-key-not-for-production
+          DEBUG: True
+          DB_NAME: controlproduccion_test_db
+          DB_USER: tanqueno_produccion_user
+          DB_PASSWORD: produccion_pass
+          DB_HOST: localhost
+          DB_PORT: 5432
+          TEST_DB_NAME: controlproduccion_test_db
+          CORS_ALLOW_ALL_ORIGINS: True
+          ALLOWED_HOSTS: "*"
+        run: uv run python manage.py test manufacturing --verbosity=2
+
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to Azure VM
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPSSSHKEY }}
+          script: |
+            cd /opt/ControlProduccion
+            git fetch origin
+            git reset --hard origin/main
+            uv sync --frozen
+            uv run python manage.py migrate --noinput
+            uv run python manage.py collectstatic --noinput --clear
+            sudo systemctl restart gunicorn-ControlProduccion
+            sudo systemctl restart nginx
