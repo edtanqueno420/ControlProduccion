@@ -31,6 +31,7 @@ class ProductionOrderCRUDTests(TestCase):
             'cantidad_a_producir': 10,
             'centro_trabajo': self.wc.id,
             'prioridad': 'HIGH',
+            'usuario_responsable': self.user.id,  # <-- Solución al error 400
         })
         self.assertEqual(resp.status_code, status.HTTP_201_CREATED)
         self.assertEqual(resp.data['estado'], 'DRAFT')
