@@ -13,10 +13,19 @@ from manufacturing.serializers.inventory_movement import InventoryMovementSerial
 class InventoryMovementViewSet(viewsets.ModelViewSet):
     queryset = InventoryMovement.objects.all().order_by('-created_at')
     serializer_class = InventoryMovementSerializer
-    permission_classes = [IsAuthenticated]
+
+    def get_permissions(self):
+        """
+        Asigna permisos de forma dinámica según la acción solicitada.
+        Soluciona de raíz el error de tipos en los decoradores.
+        """
+        if self.action == 'adjust':
+            # Solo los administradores/staff pueden ajustar stock (test_adjust_stock_regular_user_returns_403)
+            return [IsAdminUser()]
+        # Para el listado general y las estadísticas, basta con estar autenticado
+        return [IsAuthenticated()]
 
     @action(detail=False, methods=['post'], url_path='adjust')
-    @permission_classes([IsAdminUser])
     def adjust(self, request):
         """
         Endpoint personalizado para ajustar de manera manual el stock de un producto.
@@ -46,7 +55,7 @@ class InventoryMovementViewSet(viewsets.ModelViewSet):
             producto.stock_actual = stock_nuevo
             producto.save()
 
-            # Guardar el registro histórico en InventoryMovement
+            # Guardar el registro histórico en InventoryMovement (test_adjust_stock_creates_movement)
             movimiento = InventoryMovement.objects.create(
                 producto=producto,
                 tipo_movimiento='ADJUSTMENT',
