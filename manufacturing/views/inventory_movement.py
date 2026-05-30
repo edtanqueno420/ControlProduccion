@@ -16,6 +16,7 @@ class InventoryMovementViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     @action(detail=False, methods=['post'], url_path='adjust')
+    @permission_classes([IsAdminUser])
     def adjust(self, request):
         """
         Endpoint personalizado para ajustar de manera manual el stock de un producto.
