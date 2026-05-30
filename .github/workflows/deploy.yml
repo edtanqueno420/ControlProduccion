@@ -52,7 +52,7 @@ jobs:
           TEST_DB_NAME: controlproduccion_test_db
           CORS_ALLOW_ALL_ORIGINS: True
           ALLOWED_HOSTS: "*"
-        run: uv run python manage.py test manufacturing --verbosity=2
+        run: uv run python manage.py test manufacturing --verbosity=2 --noinput
 
   deploy:
     needs: test
