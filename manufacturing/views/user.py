@@ -9,6 +9,7 @@ from django.contrib.auth.models import User
 
 from manufacturing.serializers.user import (
     UserSerializer,
+    UserWriteSerializer,
     UserProfileSerializer,
     ChangePasswordSerializer,
 )
@@ -25,6 +26,11 @@ class UserViewSet(viewsets.ModelViewSet):
     search_fields      = ['username', 'email', 'first_name', 'last_name']
     ordering_fields    = ['id', 'username', 'date_joined']
     ordering           = ['id']
+
+    def get_serializer_class(self):
+        if self.action in ('create', 'update', 'partial_update'):
+            return UserWriteSerializer
+        return UserSerializer
 
     @action(
         detail=False,

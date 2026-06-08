@@ -12,6 +12,53 @@ class ProfileSerializer(serializers.ModelSerializer):
         fields = ['role']
 
 
+class UserWriteSerializer(serializers.ModelSerializer):
+    profile = ProfileSerializer(read_only=True)
+    password = serializers.CharField(write_only=True, required=False, min_length=8, allow_blank=True)
+    role = serializers.ChoiceField(
+        choices=['ADMIN', 'SUPERVISOR', 'OPERARIO'],
+        write_only=True,
+        default='OPERARIO',
+    )
+
+    class Meta:
+        model  = User
+        fields = [
+            'id', 'username', 'email', 'first_name', 'last_name',
+            'is_staff', 'is_active', 'password', 'role', 'profile',
+        ]
+        read_only_fields = ['id']
+
+    def validate(self, attrs):
+        if not self.instance and not attrs.get('password'):
+            raise serializers.ValidationError({'password': 'Password is required for new users.'})
+        return attrs
+
+    def create(self, validated_data):
+        password = validated_data.pop('password', None)
+        role = validated_data.pop('role', 'OPERARIO')
+        user = User(**validated_data)
+        if password:
+            user.set_password(password)
+        else:
+            user.set_unusable_password()
+        user.save()
+        Profile.objects.create(user=user, role=role)
+        return user
+
+    def update(self, instance, validated_data):
+        role = validated_data.pop('role', None)
+        password = validated_data.pop('password', None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        if password:
+            instance.set_password(password)
+        if role:
+            Profile.objects.update_or_create(user=instance, defaults={'role': role})
+        instance.save()
+        return instance
+
+
 class RegisterSerializer(serializers.Serializer):
     username  = serializers.CharField(max_length=150)
     email     = serializers.EmailField()
