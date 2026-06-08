@@ -31,4 +31,9 @@ class ProductionOrderSerializer(serializers.ModelSerializer):
             'centro_trabajo', 'centro_trabajo_codigo', 'centro_trabajo_nombre',
             'created_at', 'updated_at',
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at']
+        read_only_fields = [
+            'id', 'created_at', 'updated_at',
+            'usuario_responsable', 'responsable_username',
+            'estado', 'fecha_inicio', 'fecha_fin',
+            'cantidad_producida',
+        ]

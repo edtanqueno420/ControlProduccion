@@ -1,0 +1,1492 @@
+{
+  "info": {
+    "name": "ControlProduccion API",
+    "description": "Colección completa de la API de ControlProduccion.\n\nAutenticación JWT con tokens de acceso (60 min) y refresh (1 día).\nRotación de refresh tokens activa.\n\nURL base: https://tanqueno-produccion.uaeftt-ute.site\n\nFlujo recomendado:\n1. Register → Login (automatic token save)\n2. Crear materia prima + producto terminado\n3. Crear centro de trabajo\n4. Crear BOM\n5. Crear orden de producción\n6. Start → Complete\n7. Consultar movimientos de inventario",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/health/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "health", ""]
+            },
+            "description": "Verifica que el servicio esté operativo. Endpoint público, no requiere autenticación."
+          },
+          "response": []
+        },
+        {
+          "name": "Register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.access) {",
+                  "    pm.environment.set(\"access_token\", jsonData.access);",
+                  "}",
+                  "if (jsonData.refresh) {",
+                  "    pm.environment.set(\"refresh_token\", jsonData.refresh);",
+                  "}",
+                  "if (jsonData.user_id) {",
+                  "    pm.environment.set(\"user_id\", jsonData.user_id);",
+                  "    pm.environment.set(\"adjust_user_id\", jsonData.user_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"username\": \"admin_produccion\",\n    \"email\": \"admin@produccion.com\",\n    \"password\": \"Admin12345\",\n    \"password2\": \"Admin12345\",\n    \"role\": \"ADMIN\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/register/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "register", ""]
+            },
+            "description": "Registra un nuevo usuario. Acepta username, email, password, password2 y role.\nRoles disponibles: ADMIN, SUPERVISOR, OPERARIO.\nDevuelve tokens JWT + datos del usuario."
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.access) {",
+                  "    pm.environment.set(\"access_token\", jsonData.access);",
+                  "}",
+                  "if (jsonData.refresh) {",
+                  "    pm.environment.set(\"refresh_token\", jsonData.refresh);",
+                  "}",
+                  "if (jsonData.user_id) {",
+                  "    pm.environment.set(\"user_id\", jsonData.user_id);",
+                  "    pm.environment.set(\"adjust_user_id\", jsonData.user_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"username\": \"admin_produccion\",\n    \"password\": \"Admin12345\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login", ""]
+            },
+            "description": "Inicia sesión con username y password.\nDevuelve access_token, refresh_token, user_id, username, email y role."
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.access) {",
+                  "    pm.environment.set(\"access_token\", jsonData.access);",
+                  "}",
+                  "if (jsonData.refresh) {",
+                  "    pm.environment.set(\"refresh_token\", jsonData.refresh);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"refresh\": \"{{refresh_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/token/refresh/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "token", "refresh", ""]
+            },
+            "description": "Refresca el access token usando el refresh token.\nCon rotación activa, también devuelve un nuevo refresh token."
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"token\": \"{{access_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/token/verify/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "token", "verify", ""]
+            },
+            "description": "Verifica si un access token es válido. No devuelve contenido si es válido (200 OK)."
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"refresh\": \"{{refresh_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/logout/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "logout", ""]
+            },
+            "description": "Cierra la sesión. Requiere el refresh token en el body.\nEl refresh token se agrega a la blacklist."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/users/?page={{page}}&page_size={{page_size}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", ""],
+              "query": [
+                { "key": "page", "value": "{{page}}" },
+                { "key": "page_size", "value": "{{page_size}}" },
+                { "key": "search", "value": "", "disabled": true },
+                { "key": "ordering", "value": "", "disabled": true }
+              ]
+            },
+            "description": "Lista todos los usuarios. Solo ADMIN.\nSoporta paginación, búsqueda (username, email, first_name, last_name) y ordenamiento (id, username, date_joined)."
+          },
+          "response": []
+        },
+        {
+          "name": "Create User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.id) {",
+                  "    pm.environment.set(\"user_id\", jsonData.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"username\": \"operator1\",\n    \"email\": \"operator1@produccion.com\",\n    \"first_name\": \"Carlos\",\n    \"last_name\": \"Mendoza\",\n    \"is_staff\": false,\n    \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", ""]
+            },
+            "description": "Crea un nuevo usuario. Solo ADMIN.\nCampos: username, email, first_name, last_name, is_staff, is_active."
+          },
+          "response": []
+        },
+        {
+          "name": "Get User",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/users/{{user_id}}/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "{{user_id}}", ""]
+            },
+            "description": "Obtiene el detalle de un usuario por ID. Solo ADMIN."
+          },
+          "response": []
+        },
+        {
+          "name": "Update User (PUT)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"username\": \"operator1_actualizado\",\n    \"email\": \"operator1_act@produccion.com\",\n    \"first_name\": \"Carlos\",\n    \"last_name\": \"Mendoza López\",\n    \"is_staff\": false,\n    \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users/{{user_id}}/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "{{user_id}}", ""]
+            },
+            "description": "Actualiza completamente un usuario. Solo ADMIN.\nRequiere todos los campos no read-only."
+          },
+          "response": []
+        },
+        {
+          "name": "Partial Update User (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"first_name\": \"Carlos Andrés\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users/{{user_id}}/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "{{user_id}}", ""]
+            },
+            "description": "Actualiza parcialmente un usuario. Solo ADMIN. Solo envía los campos a modificar."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/users/{{user_id}}/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "{{user_id}}", ""]
+            },
+            "description": "Elimina un usuario. Solo ADMIN."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/users/profile/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "profile", ""]
+            },
+            "description": "Obtiene el perfil del usuario autenticado. Incluye id, username, email, first_name, last_name y profile.role."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Profile (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"first_name\": \"Admin\",\n    \"last_name\": \"Produccion\",\n    \"email\": \"admin.nuevo@produccion.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users/profile/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "profile", ""]
+            },
+            "description": "Actualiza el perfil del usuario autenticado (PATCH). Campos: first_name, last_name, email."
+          },
+          "response": []
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"current_password\": \"Admin12345\",\n    \"new_password\": \"NuevaPass789\",\n    \"new_password2\": \"NuevaPass789\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/users/change-password/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "change-password", ""]
+            },
+            "description": "Cambia la contraseña del usuario autenticado.\nRequiere: current_password, new_password (min 8), new_password2 (debe coincidir)."
+          },
+          "response": []
+        },
+        {
+          "name": "Toggle Active User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/users/{{user_id}}/toggle-active/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "{{user_id}}", "toggle-active", ""]
+            },
+            "description": "Activa o desactiva un usuario (toggle). Solo ADMIN."
+          },
+          "response": []
+        },
+        {
+          "name": "Users Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/users/stats/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "users", "stats", ""]
+            },
+            "description": "Estadísticas de usuarios. Solo ADMIN.\nDevuelve: total, active, inactive, staff."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "List Products",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/products/?page={{page}}&page_size={{page_size}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "products", ""],
+              "query": [
+                { "key": "page", "value": "{{page}}" },
+                { "key": "page_size", "value": "{{page_size}}" },
+                { "key": "search", "value": "", "disabled": true },
+                { "key": "ordering", "value": "", "disabled": true },
+                { "key": "tipo", "value": "", "disabled": true },
+                { "key": "activo", "value": "", "disabled": true }
+              ]
+            },
+            "description": "Lista productos activos. StaffOrReadOnly.\nSoporta paginación, búsqueda, filtros (tipo, activo, nombre, stock_min, stock_max) y ordenamiento."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Raw Material",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.id) {",
+                  "    pm.environment.set(\"product_id\", jsonData.id);",
+                  "    pm.environment.set(\"raw_material_id\", jsonData.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"codigo_sku\": \"MAT-ACERO-001\",\n    \"nombre\": \"Acero Laminado\",\n    \"descripcion\": \"Plancha de acero laminado de 3mm\",\n    \"tipo\": \"RAW_MATERIAL\",\n    \"stock_actual\": 5000,\n    \"unidad_medida\": \"kg\",\n    \"stock_minimo\": 100,\n    \"activo\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/products/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "products", ""]
+            },
+            "description": "Crea una materia prima. Requiere staff (ADMIN o SUPERVISOR).\ntipo RAW_MATERIAL para materiales de entrada en BOMs."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Finished Good",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.id) {",
+                  "    pm.environment.set(\"product_id\", jsonData.id);",
+                  "    pm.environment.set(\"finished_good_id\", jsonData.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"codigo_sku\": \"PROD-MESA-001\",\n    \"nombre\": \"Mesa Metálica Industrial\",\n    \"descripcion\": \"Mesa de trabajo industrial de acero\",\n    \"tipo\": \"FINISHED_GOOD\",\n    \"stock_actual\": 0,\n    \"unidad_medida\": \"units\",\n    \"stock_minimo\": 5,\n    \"activo\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/products/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "products", ""]
+            },
+            "description": "Crea un producto terminado. Requiere staff.\ntipo FINISHED_GOOD para usar en BOMs y órdenes de producción."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Product",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/products/{{product_id}}/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "products", "{{product_id}}", ""]
+            },
+            "description": "Obtiene detalle de un producto por ID."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Product (PUT)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"codigo_sku\": \"MAT-ACERO-001\",\n    \"nombre\": \"Acero Laminado 3mm\",\n    \"descripcion\": \"Plancha de acero laminado de 3mm calidad industrial\",\n    \"tipo\": \"RAW_MATERIAL\",\n    \"stock_actual\": 5000,\n    \"unidad_medida\": \"kg\",\n    \"stock_minimo\": 100,\n    \"activo\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/products/{{product_id}}/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "products", "{{product_id}}", ""]
+            },
+            "description": "Actualiza completamente un producto. Requiere staff."
+          },
+          "response": []
+        },
+        {
+          "name": "Partial Update Product (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"descripcion\": \"Plancha de acero laminado de 3mm - calidad premium\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/products/{{product_id}}/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "products", "{{product_id}}", ""]
+            },
+            "description": "Actualiza parcialmente un producto. Solo envía los campos a modificar."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Product",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/products/{{product_id}}/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "products", "{{product_id}}", ""]
+            },
+            "description": "Elimina un producto (soft delete vía activo=False). Requiere staff."
+          },
+          "response": []
+        },
+        {
+          "name": "Restock Product",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.id) {",
+                  "    pm.environment.set(\"product_id\", jsonData.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"quantity\": 500\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/products/{{product_id}}/restock/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "products", "{{product_id}}", "restock", ""]
+            },
+            "description": "Reabastece un producto. Solo ADMIN.\nquantity debe ser un entero positivo."
+          },
+          "response": []
+        },
+        {
+          "name": "Available Products",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/products/available/?page={{page}}&page_size={{page_size}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "products", "available", ""],
+              "query": [
+                { "key": "page", "value": "{{page}}" },
+                { "key": "page_size", "value": "{{page_size}}" }
+              ]
+            },
+            "description": "Lista productos con stock disponible (stock_actual > 0 y activo=True). Endpoint público."
+          },
+          "response": []
+        },
+        {
+          "name": "Products Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/products/stats/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "products", "stats", ""]
+            },
+            "description": "Estadísticas de productos.\nDevuelve: total_active, total_stock, total_inactive, out_of_stock, raw_materials, finished_goods."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Bill of Materials",
+      "item": [
+        {
+          "name": "List BOMs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/bill-of-materials/?page={{page}}&page_size={{page_size}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "bill-of-materials", ""],
+              "query": [
+                { "key": "page", "value": "{{page}}" },
+                { "key": "page_size", "value": "{{page_size}}" },
+                { "key": "search", "value": "", "disabled": true },
+                { "key": "ordering", "value": "", "disabled": true },
+                { "key": "producto_terminado", "value": "", "disabled": true },
+                { "key": "activa", "value": "", "disabled": true },
+                { "key": "version", "value": "", "disabled": true }
+              ]
+            },
+            "description": "Lista todas las listas de materiales (BOMs). StaffOrReadOnly.\nIncluye detalles anidados (detalles) con materia prima."
+          },
+          "response": []
+        },
+        {
+          "name": "Create BOM",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.id) {",
+                  "    pm.environment.set(\"bom_id\", jsonData.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"producto_terminado\": \"{{finished_good_id}}\",\n    \"version\": 1,\n    \"cantidad_base\": 1,\n    \"activa\": true,\n    \"observaciones\": \"BOM inicial para mesa metálica\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/bill-of-materials/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "bill-of-materials", ""]
+            },
+            "description": "Crea una lista de materiales (BOM) para un producto terminado.\nRequiere staff. Los detalles se crean por separado (no hay endpoint público para BillOfMaterialDetail aún)."
+          },
+          "response": []
+        },
+        {
+          "name": "Get BOM",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/bill-of-materials/{{bom_id}}/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "bill-of-materials", "{{bom_id}}", ""]
+            },
+            "description": "Obtiene detalle de una BOM por ID. Incluye los detalles (materias primas)."
+          },
+          "response": []
+        },
+        {
+          "name": "Update BOM (PUT)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"producto_terminado\": \"{{finished_good_id}}\",\n    \"version\": 1,\n    \"cantidad_base\": 1,\n    \"activa\": true,\n    \"observaciones\": \"BOM inicial para mesa metálica - versión actualizada\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/bill-of-materials/{{bom_id}}/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "bill-of-materials", "{{bom_id}}", ""]
+            },
+            "description": "Actualiza completamente una BOM."
+          },
+          "response": []
+        },
+        {
+          "name": "Partial Update BOM (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"observaciones\": \"BOM actualizada con nueva versión de materiales\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/bill-of-materials/{{bom_id}}/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "bill-of-materials", "{{bom_id}}", ""]
+            },
+            "description": "Actualiza parcialmente una BOM."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete BOM",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/bill-of-materials/{{bom_id}}/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "bill-of-materials", "{{bom_id}}", ""]
+            },
+            "description": "Elimina una BOM."
+          },
+          "response": []
+        },
+        {
+          "name": "BOM Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/bill-of-materials/stats/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "bill-of-materials", "stats", ""]
+            },
+            "description": "Estadísticas de BOMs.\nDevuelve: total, active, inactive y detalle por BOM con número de materiales."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Work Centers",
+      "item": [
+        {
+          "name": "List Work Centers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/work-centers/?page={{page}}&page_size={{page_size}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "work-centers", ""],
+              "query": [
+                { "key": "page", "value": "{{page}}" },
+                { "key": "page_size", "value": "{{page_size}}" },
+                { "key": "search", "value": "", "disabled": true },
+                { "key": "ordering", "value": "", "disabled": true },
+                { "key": "estado", "value": "", "disabled": true },
+                { "key": "activo", "value": "", "disabled": true }
+              ]
+            },
+            "description": "Lista centros de trabajo. StaffOrReadOnly.\nSoporta paginación, búsqueda (codigo, nombre_maquina, descripcion), filtros (estado, activo) y ordenamiento."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Work Center",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.id) {",
+                  "    pm.environment.set(\"work_center_id\", jsonData.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"codigo\": \"WC-SOLD-001\",\n    \"nombre_maquina\": \"Soldadora Eléctrica\",\n    \"descripcion\": \"Máquina de soldadura por arco eléctrico\",\n    \"estado\": \"ACTIVE\",\n    \"capacidad_diaria\": 20,\n    \"activo\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/work-centers/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "work-centers", ""]
+            },
+            "description": "Crea un centro de trabajo. Requiere staff.\nestado: ACTIVE, MAINTENANCE, INACTIVE."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Work Center",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/work-centers/{{work_center_id}}/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "work-centers", "{{work_center_id}}", ""]
+            },
+            "description": "Obtiene detalle de un centro de trabajo por ID."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Work Center (PUT)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"codigo\": \"WC-SOLD-001\",\n    \"nombre_maquina\": \"Soldadora Eléctrica Industrial\",\n    \"descripcion\": \"Máquina de soldadura por arco eléctrico de alta capacidad\",\n    \"estado\": \"ACTIVE\",\n    \"capacidad_diaria\": 30,\n    \"activo\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/work-centers/{{work_center_id}}/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "work-centers", "{{work_center_id}}", ""]
+            },
+            "description": "Actualiza completamente un centro de trabajo."
+          },
+          "response": []
+        },
+        {
+          "name": "Partial Update Work Center (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"capacidad_diaria\": 25\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/work-centers/{{work_center_id}}/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "work-centers", "{{work_center_id}}", ""]
+            },
+            "description": "Actualiza parcialmente un centro de trabajo."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Work Center",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/work-centers/{{work_center_id}}/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "work-centers", "{{work_center_id}}", ""]
+            },
+            "description": "Elimina un centro de trabajo."
+          },
+          "response": []
+        },
+        {
+          "name": "Work Center Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/work-centers/stats/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "work-centers", "stats", ""]
+            },
+            "description": "Estadísticas de centros de trabajo.\nDevuelve: total, active, maintenance, inactive y detalle por centro con número de órdenes."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Production Orders",
+      "item": [
+        {
+          "name": "List Production Orders",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/production-orders/?page={{page}}&page_size={{page_size}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "production-orders", ""],
+              "query": [
+                { "key": "page", "value": "{{page}}" },
+                { "key": "page_size", "value": "{{page_size}}" },
+                { "key": "ordering", "value": "", "disabled": true },
+                { "key": "estado", "value": "", "disabled": true },
+                { "key": "prioridad", "value": "", "disabled": true },
+                { "key": "centro_trabajo", "value": "", "disabled": true },
+                { "key": "producto", "value": "", "disabled": true },
+                { "key": "from_date", "value": "", "disabled": true },
+                { "key": "to_date", "value": "", "disabled": true }
+              ]
+            },
+            "description": "Lista órdenes de producción. OwnerOrStaff.\nStaff ve todas; operarios ven solo las suyas.\nSoporta filtros: estado, prioridad, centro_trabajo, producto, from_date, to_date."
+          },
+          "response": []
+        },
+        {
+          "name": "Create Production Order",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.id) {",
+                  "    pm.environment.set(\"production_order_id\", jsonData.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"codigo_orden\": \"ORD-2026-001\",\n    \"producto\": \"{{finished_good_id}}\",\n    \"cantidad_a_producir\": 10,\n    \"observaciones\": \"Producción de mesas metálicas para cliente industrial\",\n    \"prioridad\": \"HIGH\",\n    \"centro_trabajo\": \"{{work_center_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/production-orders/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "production-orders", ""]
+            },
+            "description": "Crea una orden de producción. OwnerOrStaff.\nusuario_responsable se asigna automáticamente al usuario autenticado.\nestado por defecto: DRAFT. No soporta PUT, solo PATCH."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Production Order",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/production-orders/{{production_order_id}}/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "production-orders", "{{production_order_id}}", ""]
+            },
+            "description": "Obtiene detalle de una orden de producción por ID."
+          },
+          "response": []
+        },
+        {
+          "name": "Partial Update Production Order (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"observaciones\": \"Orden actualizada - prioridad ajustada\",\n    \"prioridad\": \"LOW\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/production-orders/{{production_order_id}}/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "production-orders", "{{production_order_id}}", ""]
+            },
+            "description": "Actualiza parcialmente una orden de producción.\nNOTA: Este ViewSet NO soporta PUT, solo PATCH."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Production Order",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/production-orders/{{production_order_id}}/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "production-orders", "{{production_order_id}}", ""]
+            },
+            "description": "Elimina una orden de producción."
+          },
+          "response": []
+        },
+        {
+          "name": "Start Production",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/production-orders/{{production_order_id}}/start/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "production-orders", "{{production_order_id}}", "start", ""]
+            },
+            "description": "Inicia la producción.\nValida: estado DRAFT, stock suficiente de materias primas, exclusividad del centro de trabajo.\nCambia estado a IN_PROGRESS y registra fecha_inicio."
+          },
+          "response": []
+        },
+        {
+          "name": "Pause Production",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/production-orders/{{production_order_id}}/pause/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "production-orders", "{{production_order_id}}", "pause", ""]
+            },
+            "description": "Pausa una orden en progreso. Cambia estado a PAUSED."
+          },
+          "response": []
+        },
+        {
+          "name": "Complete Production",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"cantidad_producida\": 10\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/production-orders/{{production_order_id}}/complete/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "production-orders", "{{production_order_id}}", "complete", ""]
+            },
+            "description": "Completa una orden en progreso.\nAcepta cantidad_producida opcional (entero positivo). Si no se envía, usa cantidad_a_producir.\nGenera movimientos de inventario automáticos: PRODUCTION_CONSUMPTION (materias primas) y PRODUCTION_INPUT (producto terminado)."
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Production",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/production-orders/{{production_order_id}}/cancel/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "production-orders", "{{production_order_id}}", "cancel", ""]
+            },
+            "description": "Cancela una orden. No se puede cancelar si ya está FINISHED o CANCELLED.\nCambia estado a CANCELLED y registra fecha_fin."
+          },
+          "response": []
+        },
+        {
+          "name": "Production Order Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/production-orders/stats/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "production-orders", "stats", ""]
+            },
+            "description": "Estadísticas de órdenes de producción. Solo ADMIN.\nDevuelve: total_orders, by_status (DRAFT, IN_PROGRESS, PAUSED, FINISHED, CANCELLED), by_priority (LOW, MEDIUM, HIGH)."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Inventory Movements",
+      "item": [
+        {
+          "name": "List Movements",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/inventory-movements/?page={{page}}&page_size={{page_size}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "inventory-movements", ""],
+              "query": [
+                { "key": "page", "value": "{{page}}" },
+                { "key": "page_size", "value": "{{page_size}}" },
+                { "key": "ordering", "value": "", "disabled": true },
+                { "key": "tipo_movimiento", "value": "", "disabled": true },
+                { "key": "producto", "value": "", "disabled": true },
+                { "key": "orden_produccion", "value": "", "disabled": true },
+                { "key": "from_date", "value": "", "disabled": true },
+                { "key": "to_date", "value": "", "disabled": true }
+              ]
+            },
+            "description": "Lista movimientos de inventario. Solo autenticados.\nSoporta paginación, filtros (tipo_movimiento, producto, orden_produccion, from_date, to_date) y ordenamiento."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Movement",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.id) {",
+                  "    pm.environment.set(\"movement_id\", jsonData.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/inventory-movements/{{movement_id}}/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "inventory-movements", "{{movement_id}}", ""]
+            },
+            "description": "Obtiene detalle de un movimiento de inventario por ID."
+          },
+          "response": []
+        },
+        {
+          "name": "Adjust Stock",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"producto_id\": \"{{raw_material_id}}\",\n    \"nueva_cantidad\": 6000,\n    \"motivo\": \"Ajuste manual por inventario físico\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/inventory-movements/adjust/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "inventory-movements", "adjust", ""]
+            },
+            "description": "Ajusta el stock de un producto manualmente. Solo ADMIN.\nCrea un movimiento ADJUSTMENT. Requiere producto_id y nueva_cantidad."
+          },
+          "response": []
+        },
+        {
+          "name": "Movement Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/inventory-movements/stats/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "inventory-movements", "stats", ""]
+            },
+            "description": "Estadísticas de movimientos de inventario.\nDevuelve: total_movements, by_type (conteo por tipo), totals_by_type (suma de cantidades por tipo)."
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
