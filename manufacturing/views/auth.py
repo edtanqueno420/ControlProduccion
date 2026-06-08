@@ -24,6 +24,7 @@ class RegisterView(APIView):
             'username': user.username,
             'email':    user.email,
             'role':     user.profile.role if hasattr(user, 'profile') else 'OPERARIO',
+            'is_staff': user.is_staff,
         }, status=status.HTTP_201_CREATED)
 
 
