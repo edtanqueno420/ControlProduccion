@@ -25,6 +25,16 @@ class BillOfMaterialDetailSerializer(serializers.ModelSerializer):
         return obj.cantidad_con_desperdicio
 
 
+class BillOfMaterialDetailWriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model  = BillOfMaterialDetail
+        fields = [
+            'id', 'lista_materiales', 'materia_prima',
+            'cantidad_requerida', 'desperdicio_porcentaje',
+        ]
+        read_only_fields = ['id']
+
+
 class BillOfMaterialSerializer(serializers.ModelSerializer):
     detalles = BillOfMaterialDetailSerializer(many=True, read_only=True)
     producto_terminado_nombre = serializers.CharField(

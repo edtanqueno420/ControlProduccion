@@ -1,13 +1,13 @@
 # manufacturing/views/bom.py
-from rest_framework import viewsets
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Count
 
-from manufacturing.models           import BillOfMaterial
-from manufacturing.serializers.bom  import BillOfMaterialSerializer
+from manufacturing.models           import BillOfMaterial, BillOfMaterialDetail
+from manufacturing.serializers.bom  import BillOfMaterialSerializer, BillOfMaterialDetailSerializer, BillOfMaterialDetailWriteSerializer
 from manufacturing.permissions      import IsStaffOrReadOnly
 from manufacturing.filters          import BillOfMaterialFilter
 from manufacturing.pagination       import StandardPagination
@@ -44,3 +44,32 @@ class BillOfMaterialViewSet(viewsets.ModelViewSet):
                 for b in qs.order_by('producto_terminado__nombre')
             ],
         })
+
+
+class BillOfMaterialDetailViewSet(viewsets.ModelViewSet):
+    queryset           = BillOfMaterialDetail.objects.select_related('materia_prima').all()
+    permission_classes = [IsStaffOrReadOnly]
+    filter_backends    = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields   = ['lista_materiales']
+    ordering_fields    = ['created_at']
+    ordering           = ['created_at']
+
+    def get_serializer_class(self):
+        if self.action in ('create', 'update', 'partial_update'):
+            return BillOfMaterialDetailWriteSerializer
+        return BillOfMaterialDetailSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        read = BillOfMaterialDetailSerializer(serializer.instance)
+        return Response(read.data, status=status.HTTP_201_CREATED)
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        read = BillOfMaterialDetailSerializer(serializer.instance)
+        return Response(read.data)

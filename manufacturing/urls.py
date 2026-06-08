@@ -7,7 +7,7 @@ from manufacturing.views.health    import health_check
 from manufacturing.views.auth      import RegisterView, LogoutView
 from manufacturing.views.user      import UserViewSet
 from manufacturing.views.product   import ProductViewSet
-from manufacturing.views.bom       import BillOfMaterialViewSet
+from manufacturing.views.bom       import BillOfMaterialViewSet, BillOfMaterialDetailViewSet
 from manufacturing.views.work_center import WorkCenterViewSet
 from manufacturing.views.production_order import ProductionOrderViewSet
 from manufacturing.views.inventory_movement import InventoryMovementViewSet
@@ -17,6 +17,7 @@ router = DefaultRouter()
 router.register('users',               UserViewSet,               basename='user')
 router.register('products',             ProductViewSet,            basename='product')
 router.register('bill-of-materials',    BillOfMaterialViewSet,     basename='bill-of-material')
+router.register('bom-details',          BillOfMaterialDetailViewSet, basename='bom-detail')
 router.register('work-centers',         WorkCenterViewSet,         basename='work-center')
 router.register('production-orders',    ProductionOrderViewSet,    basename='production-order')
 router.register('inventory-movements',  InventoryMovementViewSet,  basename='inventory-movement')
